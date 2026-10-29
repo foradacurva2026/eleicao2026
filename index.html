@@ -262,6 +262,11 @@ section.part, section.hero { scroll-margin-top: 60px; }
 
 .card[hidden], .group[hidden] { display: none !important; }
 
+
+.ab-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); gap: 10px; }
+.ab-kpis .k { background: var(--panel); border: 1px solid var(--rule); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ab-kpis .k b { font-family: var(--display); font-weight: 800; font-size: var(--s2); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.ab-kpis .k span { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
 /* tema escuro permanente */
 :root { --paper: #111614; --panel: #19201d; --ink: #e6ebe8; --muted: #9ba7a2; --rule: #2c3531;
   --lula: #e0646b; --flavio: #72a0de; --open: #d9a23d; --ok: #7db08c; --hl: rgba(230,235,232,.08);
@@ -278,6 +283,7 @@ html { background: #111614; }
     <nav aria-label="Seções">
       <a href="#mapa">Mapa</a>
       <a href="#linha-do-tempo">A noite</a>
+      <a href="#votacao">Votação</a>
       <a href="#votos">Os votos</a>
       <a href="#urnas-17h">Urnas às 17h</a>
       <a href="#itens">Os itens</a>
@@ -362,6 +368,32 @@ html { background: #111614; }
       <div class="legend" id="xleg"></div>
       <div><span class="lab">Momentos da noite</span><div class="evlist" id="xev" style="margin-top:6px"></div></div>
       <p class="note" id="xnote"></p>
+    </div>
+  </div>
+</section>
+
+<section class="part" id="votacao">
+  <div class="wrap">
+    <div class="part-h">
+      <span class="lab">Votação</span>
+      <h2>A votação ao longo do dia, hora a hora</h2>
+      <p>Quantos eleitores votaram em cada hora e como foram liberados para votar: pela biometria, pelo mesário ou pelo ano de nascimento. A hora vem do log das urnas de uma amostra sorteada de seções, com os números estimados para o país. O log registra a hora e a forma de liberação, não o candidato.</p>
+    </div>
+    <div class="ab-kpis" id="vt-kpis"></div>
+    <div class="explorer" style="margin-top:14px">
+      <div class="ctrl">
+        <span class="lab">Mostrar</span><div class="chips" id="vt-met"></div>
+      </div>
+      <div class="ctrl">
+        <span class="lab">Turno</span><div class="seg" id="vt-t"><button type="button" data-v="ambos" aria-pressed="true">Os dois</button><button type="button" data-v="1">1º turno</button><button type="button" data-v="2">2º turno</button></div>
+      </div>
+      <div id="vt-chart" style="position:relative"></div>
+      <div class="legend" id="vt-leg"></div>
+      <p class="note" id="vt-note"></p>
+    </div>
+    <div class="twocol" style="margin-top:18px">
+      <div class="box"><h3>Quando votaram os eleitores a mais do 2º turno</h3><p class="note">Parte dos votos de cada hora: os eleitores que já votavam no 1º turno e os eleitores a mais do 2º. Os a mais votaram das 8h às 14h, quase ninguém depois das 15h, e nenhuma hora se destaca.</p><div id="vt-amais" style="position:relative"></div></div>
+      <div class="box"><h3>Liberados sem biometria</h3><p class="note">Nas seções com o tipo de liberação nos dois turnos, as liberações sem biometria subiram 467.884 do 1º para o 2º turno (cerca de 561 mil no país): 249.758 pelo mesário e 218.126 pelo ano de nascimento. Isso é 19,2% do aumento de eleitores, contra 11,7% de liberações sem biometria no geral. Hora a hora, a parte sem biometria fica entre 11,5% e 13,6% nos dois turnos, sem nenhum pico.</p><div id="vt-tipo" style="position:relative"></div></div>
     </div>
   </div>
 </section>
@@ -938,9 +970,82 @@ html { background: #111614; }
   [['Todos', null], ['Fora do padrão no voto', 'g-fora'], ['Em aberto', 'g-aberto'], ['Dentro do esperado', 'g-dentro']].forEach(([lab, g], k) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = lab; b.setAttribute('aria-pressed', k === 0 ? 'true' : 'false'); b.addEventListener('click', () => { itf.querySelectorAll('.chip').forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false')); ['g-fora', 'g-aberto', 'g-dentro'].forEach(id => { document.getElementById(id).hidden = !!g && id !== g; }); drawers.forEach(f => f()); }); itf.appendChild(b); });
   const gf = document.getElementById('g-fora'); gf.parentNode.insertBefore(itf, gf);
 
-  function drawAll() { drawMap(); drawRank(); renderPanel(); drawX(); syncCF(); drawHist(); drawCut(); drawers.forEach(f => f()); }
+
+  // ---------- votação hora a hora ----------
+  const VT = {"horas":[{"hora":"7h","h":7,"bio_1t":0,"mesario_1t":0,"ano_1t":0,"sem_tipo_1t":0,"bio_2t":0,"mesario_2t":0,"ano_2t":0,"sem_tipo_2t":0,"total_1t":0,"sembio_1t":0,"total_2t":0,"sembio_2t":0},{"hora":"8h","h":8,"bio_1t":10220500,"mesario_1t":688200,"ano_1t":536800,"sem_tipo_1t":386200,"bio_2t":18589500,"mesario_2t":1275300,"ano_2t":993700,"sem_tipo_2t":484200,"total_1t":11831700,"sembio_1t":1611200,"total_2t":21342700,"sembio_2t":2753200},{"hora":"9h","h":9,"bio_1t":11707200,"mesario_1t":704900,"ano_1t":684100,"sem_tipo_1t":407200,"bio_2t":17496100,"mesario_2t":1051400,"ano_2t":1040100,"sem_tipo_2t":460400,"total_1t":13503400,"sembio_1t":1796200,"total_2t":20048000,"sembio_2t":2551900},{"hora":"10h","h":10,"bio_1t":12702200,"mesario_1t":664800,"ano_1t":761400,"sem_tipo_1t":399900,"bio_2t":16800100,"mesario_2t":883600,"ano_2t":1064900,"sem_tipo_2t":427300,"total_1t":14528300,"sembio_1t":1826100,"total_2t":19175900,"sembio_2t":2375800},{"hora":"11h","h":11,"bio_1t":13286000,"mesario_1t":601200,"ano_1t":812300,"sem_tipo_1t":375900,"bio_2t":14382800,"mesario_2t":660200,"ano_2t":942200,"sem_tipo_2t":357100,"total_1t":15075400,"sembio_1t":1789400,"total_2t":16342300,"sembio_2t":1959500},{"hora":"12h","h":12,"bio_1t":13111300,"mesario_1t":522000,"ano_1t":837200,"sem_tipo_1t":341600,"bio_2t":11345000,"mesario_2t":477300,"ano_2t":776100,"sem_tipo_2t":285100,"total_1t":14812100,"sembio_1t":1700800,"total_2t":12883500,"sembio_2t":1538500},{"hora":"13h","h":13,"bio_1t":12387700,"mesario_1t":499000,"ano_1t":807800,"sem_tipo_1t":345200,"bio_2t":9688500,"mesario_2t":427000,"ano_2t":670900,"sem_tipo_2t":260400,"total_1t":14039700,"sembio_1t":1652000,"total_2t":11046800,"sembio_2t":1358300},{"hora":"14h","h":14,"bio_1t":11822000,"mesario_1t":484400,"ano_1t":786400,"sem_tipo_1t":332200,"bio_2t":9235800,"mesario_2t":426200,"ano_2t":685600,"sem_tipo_2t":238000,"total_1t":13425000,"sembio_1t":1603000,"total_2t":10585600,"sembio_2t":1349800},{"hora":"15h","h":15,"bio_1t":11178900,"mesario_1t":475400,"ano_1t":762400,"sem_tipo_1t":293900,"bio_2t":8541200,"mesario_2t":392100,"ano_2t":636700,"sem_tipo_2t":208800,"total_1t":12710600,"sembio_1t":1531700,"total_2t":9778800,"sembio_2t":1237600},{"hora":"16h","h":16,"bio_1t":9831700,"mesario_1t":391900,"ano_1t":718600,"sem_tipo_1t":258800,"bio_2t":5793900,"mesario_2t":249300,"ano_2t":444300,"sem_tipo_2t":127600,"total_1t":11201000,"sembio_1t":1369300,"total_2t":6615100,"sembio_2t":821200},{"hora":"17h","h":17,"bio_1t":2634100,"mesario_1t":92300,"ano_1t":206100,"sem_tipo_1t":62700,"bio_2t":28400,"mesario_2t":1800,"ano_2t":2500,"sem_tipo_2t":1300,"total_1t":2995200,"sembio_1t":361100,"total_2t":34000,"sembio_2t":5600},{"hora":"18h","h":18,"bio_1t":601500,"mesario_1t":20000,"ano_1t":42300,"sem_tipo_1t":16900,"bio_2t":1700,"mesario_2t":0,"ano_2t":0,"sem_tipo_2t":0,"total_1t":680700,"sembio_1t":79200,"total_2t":1700,"sembio_2t":0},{"hora":"19h+","h":19,"bio_1t":111100,"mesario_1t":6600,"ano_1t":9000,"sem_tipo_1t":3500,"bio_2t":0,"mesario_2t":0,"ano_2t":0,"sem_tipo_2t":0,"total_1t":130200,"sembio_1t":19100,"total_2t":0,"sembio_2t":0}],"amais":[{"hora":"8h","de_sempre":17.2,"a_mais":16.0,"a_mais_lo":14.1,"a_mais_hi":18.0},{"hora":"9h","de_sempre":16.1,"a_mais":15.6,"a_mais_lo":13.8,"a_mais_hi":17.3},{"hora":"10h","de_sempre":15.2,"a_mais":16.0,"a_mais_lo":14.6,"a_mais_hi":17.4},{"hora":"11h","de_sempre":12.4,"a_mais":15.1,"a_mais_lo":13.5,"a_mais_hi":16.6},{"hora":"12h","de_sempre":9.5,"a_mais":13.4,"a_mais_lo":12.2,"a_mais_hi":14.6},{"hora":"13h","de_sempre":8.2,"a_mais":12.5,"a_mais_lo":11.1,"a_mais_hi":13.9},{"hora":"14h","de_sempre":8.0,"a_mais":9.4,"a_mais_lo":8.4,"a_mais_hi":10.3},{"hora":"15h","de_sempre":7.8,"a_mais":4.2,"a_mais_lo":3.2,"a_mais_hi":5.1},{"hora":"16h","de_sempre":5.5,"a_mais":-2.3,"a_mais_lo":-3.5,"a_mais_hi":-1.1}],"amostra":7998};
+  const VH = VT.horas.filter(r => r.h >= 8);
+  const VMET = [
+    { k: 'total', lab: 'Todos os votos', f: (r, t) => r['total_' + t + 't'], fmt: v => nf(v / 1e6, 2) + ' mi' },
+    { k: 'sembio', lab: 'Sem biometria', f: (r, t) => r['sembio_' + t + 't'], fmt: v => nf(v / 1e6, 2) + ' mi' },
+    { k: 'pct', lab: '% sem biometria', f: (r, t) => r['total_' + t + 't'] > 50000 ? 100 * r['sembio_' + t + 't'] / r['total_' + t + 't'] : null, fmt: v => nf(v, 1) + '%' },
+    { k: 'mesario', lab: 'Liberados pelo mesário', f: (r, t) => r['mesario_' + t + 't'] + r['sem_tipo_' + t + 't'], fmt: v => nf(v / 1e3, 0) + ' mil' },
+    { k: 'ano', lab: 'Liberados pelo ano de nascimento', f: (r, t) => r['ano_' + t + 't'], fmt: v => nf(v / 1e3, 0) + ' mil' }
+  ];
+  let VM = VMET[0], VTT = 'ambos';
+  (() => {
+    const pk = t => VH.reduce((a, r) => r['total_' + t + 't'] > a['total_' + t + 't'] ? r : a, VH[0]);
+    const pb = t => VH.reduce((a, r) => r['sembio_' + t + 't'] > a['sembio_' + t + 't'] ? r : a, VH[0]);
+    const p1 = pk('1'), p2 = pk('2'), b1 = pb('1'), b2 = pb('2');
+    const K = [[`${p2.hora} às ${p2.h + 1}h`, `pico do 2º turno: ${nf(p2.total_2t / 1e6, 1)} milhões de votos`], [`${p1.hora} às ${p1.h + 1}h`, `pico do 1º turno: ${nf(p1.total_1t / 1e6, 1)} milhões de votos`],
+      [`${b2.hora} às ${b2.h + 1}h`, `mais votos sem biometria no 2º turno: ${nf(b2.sembio_2t / 1e6, 2)} mi`], ['11,5% a 13,6%', 'parte sem biometria em cada hora, nos dois turnos']];
+    const box = document.getElementById('vt-kpis');
+    K.forEach(([b, s]) => { const d = document.createElement('div'); d.className = 'k'; d.innerHTML = '<b></b><span></span>'; d.children[0].textContent = b; d.children[1].textContent = s; box.appendChild(d); });
+  })();
+  const vtm = document.getElementById('vt-met');
+  VMET.forEach(m => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = m.lab; b.setAttribute('aria-pressed', m === VM ? 'true' : 'false'); b.addEventListener('click', () => { VM = m; vtm.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); drawVT(); }); vtm.appendChild(b); });
+  document.querySelectorAll('#vt-t button').forEach(b => b.addEventListener('click', () => { VTT = b.dataset.v; document.querySelectorAll('#vt-t button').forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false')); drawVT(); }));
+  function drawVT() {
+    const el = document.getElementById('vt-chart'); el.innerHTML = '';
+    const ts = VTT === 'ambos' ? ['1', '2'] : [VTT];
+    const W = Math.max(300, el.clientWidth || 700), H = 300, m = { l: 52, r: 10, t: 16, b: 28 };
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Votos por hora');
+    const x0 = d3.scaleBand(VH.map(r => r.hora), [m.l, W - m.r]).padding(.18), x1 = d3.scaleBand(ts, [0, x0.bandwidth()]).padding(.08);
+    const vals = VH.flatMap(r => ts.map(t => VM.f(r, t))).filter(v => v != null);
+    const y = d3.scaleLinear([VM.k === 'pct' ? 0 : 0, d3.max(vals) * 1.12], [H - m.b, m.t]).nice();
+    y.ticks(5).forEach(v => { svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(v)).attr('y2', y(v)).attr('stroke', css('--rule')); svg.append('text').attr('x', m.l - 6).attr('y', y(v) + 3).attr('text-anchor', 'end').attr('font-size', 9.5).attr('fill', css('--muted')).text(VM.fmt(v)); });
+    const col = { '1': css('--muted'), '2': css('--seq1') };
+    const maxBy = {}; ts.forEach(t => { let best = null; VH.forEach(r => { const v = VM.f(r, t); if (v != null && (best == null || v > best.v)) best = { h: r.hora, v }; }); maxBy[t] = best; });
+    const tip = tipIn(el);
+    VH.forEach(r => {
+      ts.forEach(t => { const v = VM.f(r, t); if (v == null) return; const pk = maxBy[t] && maxBy[t].h === r.hora;
+        svg.append('rect').attr('x', x0(r.hora) + x1(t)).attr('width', x1.bandwidth()).attr('y', y(v)).attr('height', Math.max(0, y(0) - y(v))).attr('fill', col[t]).attr('stroke', pk ? css('--ink') : null).attr('stroke-width', pk ? 1.5 : 0)
+          .on('pointermove', ev => showTip(el, tip, ev, [`${r.hora} · ${t}º turno`, `${VM.lab}: ${VM.fmt(v)}`, `Todos os votos: ${nf(r['total_' + t + 't'])}`, `Sem biometria: ${nf(r['sembio_' + t + 't'])} (${r['total_' + t + 't'] ? nf(100 * r['sembio_' + t + 't'] / r['total_' + t + 't'], 1) : '—'}%)`, `Pelo mesário: ${nf(r['mesario_' + t + 't'] + r['sem_tipo_' + t + 't'])} · ano de nasc.: ${nf(r['ano_' + t + 't'])}`, pk ? 'Pico do turno' : ''].filter(Boolean))).on('pointerleave', () => { tip.hidden = true; });
+        if (pk) svg.append('text').attr('x', x0(r.hora) + x1(t) + x1.bandwidth() / 2).attr('y', y(v) - 5).attr('text-anchor', 'middle').attr('font-size', 9).attr('fill', css('--ink')).text('pico');
+      });
+      svg.append('text').attr('x', x0(r.hora) + x0.bandwidth() / 2).attr('y', H - 9).attr('text-anchor', 'middle').attr('font-size', 10).attr('fill', css('--muted')).text(r.hora);
+    });
+    document.getElementById('vt-leg').innerHTML = ts.map(t => `<span><i style="background:${col[t]}"></i>${t}º turno</span>`).join('') + '<span>contorno: hora de pico</span><span>horário de Brasília</span>';
+    document.getElementById('vt-note').textContent = VM.k === 'pct' ? 'A parte de eleitores liberados sem biometria fica quase igual em todas as horas, nos dois turnos. Depois das 17h o 2º turno quase não teve votos, por isso essas horas não aparecem nesta medida.'
+      : VM.k === 'total' ? 'No 2º turno, com um só cargo e filas mais rápidas, o pico foi logo na abertura, das 8h às 9h. No 1º turno, com cinco cargos, o pico foi das 11h ao meio-dia, e houve votos depois das 17h por causa das filas.'
+      : 'As liberações sem biometria acompanham o total de votos de cada hora: mais cedo no 2º turno porque todo mundo votou mais cedo.';
+  }
+  function drawAmais() {
+    const el = document.getElementById('vt-amais'); el.innerHTML = '';
+    const r = VT.amais, W = Math.max(260, el.clientWidth || 360), H = 210, m = { l: 34, r: 8, t: 10, b: 24 };
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Distribuição por hora dos eleitores a mais');
+    const x = d3.scalePoint(r.map(d => d.hora), [m.l + 8, W - m.r - 8]), y = d3.scaleLinear([-4, 20], [H - m.b, m.t]), tip = tipIn(el);
+    [0, 5, 10, 15, 20].forEach(v => { svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(v)).attr('y2', y(v)).attr('stroke', css('--rule')); svg.append('text').attr('x', m.l - 4).attr('y', y(v) + 3).attr('text-anchor', 'end').attr('font-size', 9).attr('fill', css('--muted')).text(v + '%'); });
+    r.forEach(d => svg.append('text').attr('x', x(d.hora)).attr('y', H - 7).attr('text-anchor', 'middle').attr('font-size', 9.5).attr('fill', css('--muted')).text(d.hora));
+    svg.append('path').attr('d', d3.area().x(d => x(d.hora)).y0(d => y(d.a_mais_lo)).y1(d => y(d.a_mais_hi))(r)).attr('fill', css('--seq1')).attr('opacity', .18);
+    [['de_sempre', css('--muted'), 'quem já votava'], ['a_mais', css('--seq1'), 'eleitores a mais']].forEach(([k, c, lab]) => { svg.append('path').attr('d', d3.line().x(d => x(d.hora)).y(d => y(d[k]))(r)).attr('fill', 'none').attr('stroke', c).attr('stroke-width', 2.2);
+      r.forEach(d => svg.append('circle').attr('cx', x(d.hora)).attr('cy', y(d[k])).attr('r', 3.5).attr('fill', c).on('pointermove', ev => showTip(el, tip, ev, [d.hora, `${lab}: ${nf(d[k], 1)}% dos votos do grupo`])).on('pointerleave', () => { tip.hidden = true; })); });
+    const lg = document.createElement('div'); lg.className = 'legend'; lg.innerHTML = '<span><i style="background:var(--muted)"></i>quem já votava no 1º turno</span><span><i style="background:var(--seq1)"></i>eleitores a mais (faixa: intervalo de 95%)</span>'; el.appendChild(lg);
+  }
+  function drawTipo() {
+    const el = document.getElementById('vt-tipo'); el.innerHTML = '';
+    const W = Math.max(260, el.clientWidth || 360), H = 210, m = { l: 34, r: 8, t: 10, b: 24 };
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'Parte sem biometria por hora');
+    const rr = VH.filter(r => r.h <= 16), x = d3.scalePoint(rr.map(d => d.hora), [m.l + 8, W - m.r - 8]), y = d3.scaleLinear([0, 16], [H - m.b, m.t]), tip = tipIn(el);
+    [0, 4, 8, 12, 16].forEach(v => { svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(v)).attr('y2', y(v)).attr('stroke', css('--rule')); svg.append('text').attr('x', m.l - 4).attr('y', y(v) + 3).attr('text-anchor', 'end').attr('font-size', 9).attr('fill', css('--muted')).text(v + '%'); });
+    rr.forEach(d => svg.append('text').attr('x', x(d.hora)).attr('y', H - 7).attr('text-anchor', 'middle').attr('font-size', 9.5).attr('fill', css('--muted')).text(d.hora));
+    [['1', css('--muted')], ['2', css('--seq1')]].forEach(([t, c]) => { const f = d => 100 * d['sembio_' + t + 't'] / d['total_' + t + 't'];
+      svg.append('path').attr('d', d3.line().x(d => x(d.hora)).y(d => y(f(d)))(rr)).attr('fill', 'none').attr('stroke', c).attr('stroke-width', 2.2);
+      rr.forEach(d => svg.append('circle').attr('cx', x(d.hora)).attr('cy', y(f(d))).attr('r', 3.5).attr('fill', c).on('pointermove', ev => showTip(el, tip, ev, [`${d.hora} · ${t}º turno`, `${nf(f(d), 1)}% sem biometria`, `${nf(d['sembio_' + t + 't'])} de ${nf(d['total_' + t + 't'])} votos`])).on('pointerleave', () => { tip.hidden = true; })); });
+    const lg = document.createElement('div'); lg.className = 'legend'; lg.innerHTML = '<span><i style="background:var(--muted)"></i>1º turno</span><span><i style="background:var(--seq1)"></i>2º turno</span><span>% dos votos da hora liberados sem biometria</span>'; el.appendChild(lg);
+  }
+  function drawAll() { drawMap(); drawRank(); renderPanel(); drawX(); drawVT(); drawAmais(); drawTipo(); syncCF(); drawHist(); drawCut(); drawers.forEach(f => f()); }
   drawAll();
-  let rt2; window.addEventListener('resize', () => { clearTimeout(rt2); rt2 = setTimeout(() => { renderPanel(); drawX(); drawSankey(); drawHist(); drawCut(); drawers.forEach(f => f()); }, 150); });
+  let rt2; window.addEventListener('resize', () => { clearTimeout(rt2); rt2 = setTimeout(() => { renderPanel(); drawX(); drawVT(); drawAmais(); drawTipo(); drawSankey(); drawHist(); drawCut(); drawers.forEach(f => f()); }, 150); });
   const mq2 = window.matchMedia('(prefers-color-scheme: dark)'); if (mq2.addEventListener) mq2.addEventListener('change', drawAll);
   new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
